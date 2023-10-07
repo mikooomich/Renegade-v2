@@ -1,0 +1,30 @@
+{
+	"bot": {
+		"jsonVersion": "1.4-dev (1413)",
+		"configName": "Default Config",
+		"token": "ur token",
+		"owner": "ownerid",
+		"testingChannel": "channel id",
+		"botInviteLink": "invite link",
+		"prefix": "=",
+		"usePresense": "true",
+		"useJsonEditor": "false",
+		"presenseMsg": "presense",
+		"skidsAllowedToEditJson": [],
+		"enableChatlogging": [
+			"false"
+		],
+		"botLogging": [
+			"false"
+		],
+		"musicPrevScope": 8,
+		"musicNextScope": 16,
+		"boardPath": "./musicStronghold",
+		"MAX_DISP_CHARS": 50,
+		"dlBinary": "youtube-dl",
+		"dlPath": "./libs/",
+		"dlArgs": "--audio-quality 0 --extract-audio",
+		"dlFormatting": "%(title)s.%(ext)s",
+		"displayUpdatetimeout": 4000
+	}
+}

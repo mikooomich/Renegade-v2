@@ -1,0 +1,9 @@
+{
+	"help": {
+		"General": "**help-depricated:** Show depricated cmds\n**ping:** Get bot latency\n**help:** Shows this message.\n**info:** shows bot info\n**alt f4:** just dont...\n**invite:** Get a bot invite link\n**remind <time> <time unit> <message>:** (time valid time units sec min hr day)",
+		"Pasteboard": "**pb <name> <content>** Adds a paste to the pasteboard\n**pb-del/info> <name>:** Delete/Get info of a paste\n**pb-list:** List all pastes\n**user**: Get your user info\n**user <@mention/id>:** Get another user's info",
+		"Economy": "WHOLE ECONOMY IS THANOS SNAPPED, WILL RETURN AT LATER DATE... maybe",
+		"Music": "**play <song id/exact file name>:**  Play a song\n**playNow <id or name>:** Play a song now\n**playAll (Shuffle):** Add the entire music library into the queue, Shuffle will shuffle the queue\n**del <song id/exact file name/range in format x-y>:** Delete a song OR bath delete.\nEx. del 1, del wah.mp3, del 1-3 (deletes song 1,2,3)\n\n**shuffle:** Shuffles the queue\n**QUEue:** List current playing queue\n**ListSongs:** List entire song library\n**next:** Play next song\n**prev:** Play previous song\n**loop:** Toggles one-song loop\n**stop:** Delete queue and leave\n**pause:** Pause/resume playback\n\n**MusicAdd <link/alias/attach a file>:** Download/upload a song to music library.\n**killdl:** send CTRL + C to dl binary\n**ReScan:** Reload music library\n\n**gui:** Spawn a player GUI\n**CloseGui:** Destroy active GUI\n"
+	},
+	"help-Depricated": "**Removed/disabled commands** \n`yeet <member> <reason>: kicks member\nban <member> <reason>: bans member\n**spam <amount> <thing>:** Spams user defined message (x) number of times, 100 max (DO NOT SPAM WITHOUT MESSAGE) \n The entirety of economy \n settings \n info-ext"
+}
