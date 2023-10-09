@@ -1,6 +1,6 @@
 // Welcome to my jank code
-const version = 'v1.4-dev (1414)';
-const whatTheJsonVersionShouldBeForThisVersonOfTheBot = '1.4-dev (1414)';
+const version = "0.0.1 (1)";
+const whatTheJsonVersionShouldBeForThisVersonOfTheBot = "0.0.1 (1)";
 
 // modules, libraries, etc
 const { Client, GatewayIntentBits, Partials, PermissionsBitField, ActivityType } = require('discord.js');
@@ -10,7 +10,7 @@ const client = new Client({
 	intents: [GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.Guilds,
 	GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent], partials: [Partials.Channel]
 });
-const config = require('./Renegade-meepco.json');
+const config = require('./Renegade.json');
 const res = require('./resource.json');
 const prefix = config.bot.prefix;
 const osu = require('node-os-utils');
@@ -833,22 +833,7 @@ client.on('messageCreate', async recMsg => {
 					let content = recMsg.content.split(' ').slice(2).join(' ')
 					let yes = new Pasteboard(recMsg, content)
 
-					// if (true) {
 					if (recMsg.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-						// console.log("hi")
-						// recMsg.channel.send({content: `Confirm delete paste "${alias}"? (Y/N)`})
-						// console.log("doing confirm")
-						// recMsg.channel.awaitMessages(m => m.author.id == recMsg.author.id, {max: 1, time: 30000}).then(collected => {
-						//   console.log("wait responsse")
-						//   if (collected.first().content.toLowerCase() == 'y') {
-						// console.log("doing opperation")
-						// let thing =  yes.evict();
-						// recMsg.channel.send({content: thing})
-
-
-
-
-
 						let pasteMsg;
 
 						if (cmd.startsWith(prefix + 'pb-delid')) { // delete by id
@@ -871,21 +856,6 @@ client.on('messageCreate', async recMsg => {
 								recMsg.channel.send(pasteMsg.substring(head, pasteMsg.length));
 							}
 						} while (tail <= pasteMsg.length);
-						// }
-
-						// else if (collected.first().content.toLowerCase() == 'n') {
-
-						//   recMsg.reply('Pasteboard addition canceled.');   
-						// }
-
-						// else {
-						//   recMsg.reply('Not a valid value.');   
-						// }   
-
-
-						//   }).catch(() => {
-						//     recMsg.reply('No answer after 30 seconds, operation canceled.');
-						//   });
 					}
 
 					else {
@@ -935,22 +905,6 @@ client.on('messageCreate', async recMsg => {
 					} while (tail <= pasteMsg.length);
 				}
 
-				// maybe sending the database is not the best idea...
-				// else if (cmd == prefix + 'pb-backup') {
-				//   if (recMsg.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-				//   recMsg.channel.send({content:"Here are the paste contents."}, {
-				//     files: [
-				//       "./pasteboardContent.json"]
-				//   });
-
-				// }
-
-				// else {
-				//   recMsg.channel.send({content:'You do not have authority to backup the pasteboard'})
-				// }
-
-
-				// }
 
 				else if (cmd.startsWith(prefix + 'pb')) { // main command, paste and copy
 

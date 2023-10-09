@@ -1,85 +1,82 @@
 const fs = require('fs');
 const pbDataVersion = 'dev3';
 
-var boardName = "default";
-var boardPath; // = `./PbData/default/${boardName}.json`
-
-let recMsgDummy;
-let alias;
-let date;
-let currentGuild;
-let pasteAuthor;
-let pastecontent;
-let database = {
-	version: pbDataVersion,
-	boardName: boardName,
-	lastIndex: 0,
-	pasteboard: []
-};
+let boardName = "default";
+let boardPath; // = `./PbData/default/${boardName}.json`
 
 
-
-
-function aliasSearch(array, thingToSearch) {
-	/**
-	 * Searches for a thing inside a given array with the extremely inefficient linear search method
-	 * 
-	 * @param array An array
-	 * @param thingyToSearch The number to search for
-	 * 
-	 * @return {int} The index of the item in the array
-	 * @return {int} -1 if the item is not found
-	 */
-
-	for (const i in array) {
-		if (array[i].alias == thingToSearch) {
-			return parseInt(i);
-		}
+/**
+ * Searches for an element inside a given array
+ * 
+ * @param array Array to search
+ * @param thingyToSearch The element to search for. A full alias
+ * @param useRoughSearch Use a case insensivive "contains" match search. Default is false
+ * 
+ * @return {int} The index of the item in the array, -1 if the item is not found
+ */
+function aliasSearch(array, thingToSearch, useRoughSearch = false) {
+	if (useRoughSearch) {
+		let item = array.find((element) => { return element.alias.toLowerCase().includes(thingToSearch) });
+		return item ? item.id : -1;
 	}
-	return -1;
+
+	let item = array.find((element) => { return element.alias == thingToSearch });
+	return item ? item.id : -1;
 }
 
+/**
+ * 
+ * 
+ * @param array Array to search
+ * @param thingyToSearch The element to search for. An integer id
+ * 
+ * @return {int} The index of the item in the array, -1 if the item is not found
+ */
 function idSearch(array, thingToSearch) {
-	/**
-	 * Searches for a thing inside a given array with the extremely inefficient linear search method
-	 * 
-	 * @param array An array
-	 * @param thingyToSearch The number to search for
-	 * 
-	 * @return {int} The index of the item in the array
-	 * @return {int} -1 if the item is not found
-	 */
-
-	for (const i in array) {
-		if (array[i].id == thingToSearch) {
-			return parseInt(i);
-		}
-	}
-	return -1;
+	let item = array.find((element) => { return element.id == thingToSearch });
+	return item ? item.id : -1;
 }
 
+/**
+ * Create a new paste object
+ */
 class Pasteboard {
 
-
+	/**
+	 * Create a pasteboard object
+	 * @param {*} recMsgDummyy message object link
+	 * @param {*} content 
+	 * @param {*} boardAlias name of pasteboard this belongs to
+	 */
 	constructor(recMsgDummyy, content, boardAlias) {
+
+		this.database = {
+			version: pbDataVersion,
+			boardName: boardName,
+			lastIndex: 0,
+			pasteboard: []
+		};
+
 		// get info from message <prefix>pb <alias> <content>
-		recMsgDummy = recMsgDummyy;
-		alias = recMsgDummy.content.replace("\n", " ").split(' ').slice(1)[0]; // take the first word after prefix, regardless of seperated by space or new line
-		date = new Date();
-		currentGuild = `${recMsgDummy.guild.name} (${recMsgDummy.guild.id})`;
-		pasteAuthor = `${recMsgDummy.author.username} (${recMsgDummy.author.id})`;
-		pastecontent = content;
+		this.recMsgDummy = recMsgDummyy;
+		this.alias = this.recMsgDummy.content.replace("\n", " ").split(' ').slice(1)[0]; // take the first word after prefix, regardless of seperated by space or new line
+		this.date = new Date();
+		this.currentGuild = `${this.recMsgDummy.guild.name} (${this.recMsgDummy.guild.id})`;
+		this.pasteAuthor = `${this.recMsgDummy.author.username} (${this.recMsgDummy.author.id})`;
+		this.pastecontent = content;
 
 		// setup path
 		if (boardAlias != undefined) {
 			boardName = boardAlias;
 		} // else use default name
 
-		boardPath = `./PbData/${recMsgDummy.guild.id}/${boardName}.json`;
+		boardPath = `./PbData/${this.recMsgDummy.guild.id}/${boardName}.json`;
 	}
 
 
-
+	/**
+	 * Startup function. This will setup the pastboard for use.
+	 */
 	initiation() {
 		/**
 		 * First-time setup for the pasteboard database file
@@ -94,8 +91,8 @@ class Pasteboard {
 		if (!fs.existsSync(`./PbData`)) {
 			fs.mkdirSync(`./PbData`);
 		}
-		if (!fs.existsSync(`./PbData/${recMsgDummy.guild.id}`)) {
-			fs.mkdirSync(`./PbData/${recMsgDummy.guild.id}`);
+		if (!fs.existsSync(`./PbData/${this.recMsgDummy.guild.id}`)) {
+			fs.mkdirSync(`./PbData/${this.recMsgDummy.guild.id}`);
 		}
 
 		fs.writeFile(boardPath, JSON.stringify(newDatabase, null, 2), (err) => {
@@ -108,14 +105,17 @@ class Pasteboard {
 	}
 
 
-
+	/**
+	 * Read the database file
+	 * @returns 
+	 */
 	read() {
 		/**
 		 * Read data from database
 		 */
 		try {
-			database = JSON.parse(fs.readFileSync(boardPath, 'utf-8'));
-			return database;
+			this.database = JSON.parse(fs.readFileSync(boardPath, 'utf-8'));
+			return this.database;
 		}
 		catch (err) {
 			return undefined;
@@ -123,18 +123,18 @@ class Pasteboard {
 	}
 
 
-
+	/**
+	 * Delete a paste from the pasteboard, writes the new pasteboard file
+	 * @param {} searchID 
+	 * @returns 
+	 */
 	evict(searchID = false) {
-		/**
-		 * Deletes a paste from the pasteboard
-		 * Delete the entry, modify database, then write back to file
-		 */
 
 		let deletedElement;
 		let indexOfPaste;
 
 		try {
-			database = this.read();
+			this.database = this.read();
 		}
 		catch (error) {
 			console.log("read fail,");
@@ -146,13 +146,13 @@ class Pasteboard {
 		try {
 			// search for paste
 			if (searchID == true) {
-				if (alias == 0) { // for certain people who try to delete things they shouldn't
+				if (this.alias == 0) { // for certain people who try to delete things they shouldn't
 					return "Unable to delete paste header";
 				}
-				indexOfPaste = idSearch(database.pasteboard, alias);
+				indexOfPaste = idSearch(this.database.pasteboard, this.alias);
 			}
 			else {
-				indexOfPaste = aliasSearch(database.pasteboard, alias);
+				indexOfPaste = aliasSearch(this.database.pasteboard, this.alias);
 			}
 
 
@@ -160,9 +160,9 @@ class Pasteboard {
 				return 'Paste does not exist';
 			}
 			else {
-				deletedElement = database.pasteboard.splice(indexOfPaste, 1);
+				deletedElement = this.database.pasteboard.splice(indexOfPaste, 1);
 
-				fs.writeFile(`${boardPath}`, JSON.stringify(database, null, 2), (err) => {
+				fs.writeFile(`${boardPath}`, JSON.stringify(this.database, null, 2), (err) => {
 					if (err) {
 						console.error(err);
 						throw "File write failure";
@@ -181,25 +181,25 @@ class Pasteboard {
 
 
 
-
+	/**
+	 * Retrieve a paste from the pasteboard. Returns the paste content
+	 * @param {*} searchID true to search by id, else or alias
+	 * @returns 
+	 */
 	paste(searchID = false) {
-		/**
-		 * Retrieve paste from clipboard
-		 * Default to paste by alias
-		 */
 
 		try {
-			database = this.read();
+			this.database = this.read();
 			let indexOfPaste;
 
 			if (searchID == true) {
-				indexOfPaste = idSearch(database.pasteboard, alias);
+				indexOfPaste = idSearch(this.database.pasteboard, this.alias);
 			}
 			else {
-				indexOfPaste = aliasSearch(database.pasteboard, alias);
+				indexOfPaste = aliasSearch(this.database.pasteboard, this.alias);
 			}
 
-			return database.pasteboard[indexOfPaste].content;
+			return this.database.pasteboard[indexOfPaste].content;
 		}
 
 		catch (err) {
@@ -211,30 +211,30 @@ class Pasteboard {
 
 
 
-
+	/**
+	 * Add a paste to pasteboard
+	 * @returns 
+	 */
 	copy() {
-		/**
-		 * Add a paste to pasteboard
-		 */
 
 		try {
-			database = this.read();
+			this.database = this.read();
 
 			let pasteEntry = {
-				id: database.lastIndex + 1,
-				alias: alias,
-				date: date,
-				currentGuild: currentGuild,
-				author: pasteAuthor,
-				content: pastecontent
+				id: this.database.lastIndex + 1,
+				alias: this.alias,
+				date: this.date,
+				currentGuild: this.currentGuild,
+				author: this.pasteAuthor,
+				content: this.pastecontent
 			};
 
-			database.lastIndex += 1; // increment index like a tachometer
-			let searchArray = aliasSearch(database.pasteboard, alias);
+			this.database.lastIndex += 1; // increment index like a tachometer
+			let searchArray = aliasSearch(this.database.pasteboard, this.alias);
 
 			if (searchArray <= -1) {
-				database.pasteboard.push(pasteEntry);
-				fs.writeFile(`${boardPath}`, JSON.stringify(database, null, 2), (err) => {
+				this.database.pasteboard.push(pasteEntry);
+				fs.writeFile(`${boardPath}`, JSON.stringify(this.database, null, 2), (err) => {
 					if (err) {
 						console.error(err);
 						throw "File write failure";
@@ -256,19 +256,18 @@ class Pasteboard {
 
 
 
-
+	/**
+	 * Get a list all avalible pastes
+	 * @returns 
+	 */
 	listPastes() {
-		/**
-		 * list all avalible pastes
-		 */
-
 		let availablePastes = '';
 
 		try {
-			database = this.read();
+			this.database = this.read();
 
-			for (const i in database.pasteboard) { // list all the aliases
-				availablePastes = availablePastes + (`(${database.pasteboard[i].id}) ` + database.pasteboard[i].alias + "\n");
+			for (const i in this.database.pasteboard) { // list all the aliases
+				availablePastes = availablePastes + (`(${this.database.pasteboard[i].id}) ` + this.database.pasteboard[i].alias + "\n");
 			}
 			return "`" + availablePastes + "`";
 		}
@@ -280,23 +279,24 @@ class Pasteboard {
 	}
 
 
+	/**
+	 * This function is currently WIP
+	 * Retrieves information about a paste from the pasteboard
+	 * 
+	 * @returns 
+	 */
 	getInfo() {
-		/**
-		 This function is currently WIP
-				retrieves information about a paste from the pasteboard
-		*/
-
 		try {
 
-			database = this.read();
+			this.database = this.read();
 
-			let indexOfPaste = aliasSearch(database.pasteboard, alias);
+			let indexOfPaste = aliasSearch(this.database.pasteboard, this.alias);
 			// console.log(indexOfPaste)
 			if (indexOfPaste <= -1) {
 				return 'Paste does not exist';
 			}
 			else {
-				let infoSpam = JSON.stringify(database.pasteboard[indexOfPaste]);
+				let infoSpam = JSON.stringify(this.database.pasteboard[indexOfPaste]);
 				return "`This function is currently WIP`\n" + infoSpam.replaceAll(',', '\n').replaceAll("{", '').replaceAll('"', '').replaceAll('}', '');
 			}
 		}

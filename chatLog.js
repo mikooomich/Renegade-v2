@@ -1,14 +1,12 @@
 const fs = require('fs');
 const config = require('./Renegade.json');
 
-
+/**
+ * Gets the current time in a formatted string
+ * 
+ * @returns 
+ */
 function timeStampy() {
-	/**
-	 * Gets the current time
-	 * 
-	 * @returns: formatted string
-	 */
-
 	var date = new Date();
 	var dateStr =
 		date.getFullYear() + "-" +
@@ -30,14 +28,12 @@ class BotLogging {
 	 * @param {String} level level of logging (DEBUG, WARNING, INFO, ERROR, CRITICAL)
 	 * @param {String} stuffToLog content to be logged
 	 */
-
 	constructor(level, stuffToLog) {
 		if (!fs.existsSync(`./chatLogs`)) {
 			fs.mkdirSync(`./chatLogs`);
 		}
 
 		if (config.bot.botLogging == 'true') { // on/off swtich
-
 			if (level == undefined) { // undefined lebel creates a break, intended for use when bot boots
 				fs.appendFileSync('logs.txt', "\n--------------------------------------------------\n"); // use new lines for formatting reasons
 			}
@@ -45,8 +41,8 @@ class BotLogging {
 				fs.appendFileSync('logs.txt', `${timeStampy()} - ${level} - ${stuffToLog}\n`);
 			}
 		}
-	}
 
+	}
 }
 
 
