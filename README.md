@@ -12,8 +12,12 @@ node-os-utils
 physical-cpu-count
 @discordjs/voice
 libsodium-wrappers
-ffmpeg-static (or any ffmpeg, required for playing most codecs)
 ```
+
+### Other Requirements
+- Please note if you experience audio disappearing after ~60 seconds, you may need to manually install a newer @discordjs/voice version
+- FFMPEG is also required. Install to system path, or take a look at [ffmpeg-static](https://www.npmjs.com/package/ffmpeg-static)
+
 
 ## Usage
 It is necessary to configure Renegade.json
@@ -38,7 +42,7 @@ node ./yeet.js
 - ~~Economy~~ returns at a later date
 - Reminders
 - Miscellaneous Commands
-- Tested with NodeJS 18.12.1 LTS, discord.js v14.7.1
+- Tested with NodeJS 18.17.1 LTS, discord.js v14.13.0, discord.js/voice v0.16.0
 
 
 ## Music Downloader/Uploader
@@ -46,5 +50,6 @@ Users can upload songs to the song library via a file upload or an url. As this 
 - Uploaded files must be recognized by Discord as a video or audio format
 - URLs are limited to YouTube and Soundcloud
 
-### URL Downloads
-The URL downloader is designed to work with [youtube-dl](https://github.com/ytdl-org/youtube-dl), and downloads automatically to the music library, supplying the -o argument may result in unexpected behaviour. The downloader binary must be supplied, the default location is `./libs/`. The default binary file the bot will look for (file extension independent) is `youtube-dl`. This, along with any additional youtube-dl arguments is configurable in `Renegade.json`.
+### URL Downloads (Very Experimental)
+The URL downloader is tested to work with [yt-dlp](https://github.com/yt-dlp/yt-dlp), and downloads automatically to the music library, supplying the -o argument may result in unexpected behaviour. The downloader binary must be supplied, the default location is `./libs/`. The default binary file the bot will look for (file extension independent) is `youtube-dl`. This, along with any additional yt-dlp arguments is configurable in `Renegade.json`.
+- Note: This is a very experemewntal feature and is likly extremely jank and may suddenly disappear.

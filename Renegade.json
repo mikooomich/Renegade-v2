@@ -23,7 +23,7 @@
 		"MAX_DISP_CHARS": 50,
 		"dlBinary": "",
 		"dlPath": "./libs/",
-		"dlArgs": "--audio-quality 0 --extract-audio",
+		"dlArgs": "--audio-quality 0 -x",
 		"dlFormatting": "%(title)s.%(ext)s",
 		"displayUpdatetimeout": 4000
 	}
