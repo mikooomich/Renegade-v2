@@ -1,6 +1,6 @@
 // Welcome to my jank code
-const version = 'v1.4-dev (1414)';
-const whatTheJsonVersionShouldBeForThisVersonOfTheBot = '1.4-dev (1414)';
+const version = "0.0.1 (1)";
+const whatTheJsonVersionShouldBeForThisVersonOfTheBot = "0.0.1 (1)";
 
 // modules, libraries, etc
 const { Client, GatewayIntentBits, Partials, PermissionsBitField, ActivityType } = require('discord.js');
@@ -10,7 +10,7 @@ const client = new Client({
 	intents: [GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.Guilds,
 	GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent], partials: [Partials.Channel]
 });
-const config = require('./Renegade-meepco.json');
+const config = require('./Renegade.json');
 const res = require('./resource.json');
 const prefix = config.bot.prefix;
 const osu = require('node-os-utils');
@@ -310,7 +310,7 @@ client.on(Events.InteractionCreate, interaction => {
 
 
 	setTimeout(() => { // add artifical time to ratelimit buttons
-		let wah = musicPlayer.getData()
+		let wah = musicPlayer.getDisplayData()
 		let prevDisp = wah[0];
 		let nextDisp = wah[1];
 		let playingDisp = wah[2];
@@ -696,14 +696,7 @@ client.on('messageCreate', async recMsg => {
 							playSong += `**${parseInt(i) + 1}.** ${playingQueue[i].alias}    (id=${playingQueue[i].id})\n`;
 						}
 
-						// do {
 						recMsg.channel.send({ embeds: [new EmbedParse(recMsg, "Current Queue", playSong.substring(head, tail), 52224)] });
-						//   head = tail + 1;
-						//   tail += 1950;
-						//   if (tail > playSong.length && playSong.substring(head, playSong.length).length > 0) {
-						//     recMsg.channel.send({embeds: [new EmbedParse(recMsg, "Current Queue", playSong.substring(head, playSong.length), 52224)]});
-						//   }
-						// } while (tail <= playSong.length);
 					}
 					else {
 						recMsg.channel.send({ embeds: [new EmbedParse(recMsg, ":exclamation::exclamation::exclamation:", "QUEUE IS EMPTY", 52224)] });
@@ -766,7 +759,7 @@ client.on('messageCreate', async recMsg => {
 					// spawn player prompt
 					recMsg.channel.send({
 						embeds: [
-							new EmbedParse(recMsg, "Player", "Hello.", 52224)
+							new EmbedParse(recMsg, "Player GUI", "Hello.", 52224)
 						], components: [spawn]
 					});
 
@@ -789,20 +782,20 @@ client.on('messageCreate', async recMsg => {
 
 				else if (cmd.startsWith(prefix + 'play')) {
 					let request = recMsg.content.split(' ').slice(1).join(' ');
-					musicPlayer.updateRecMsg(recMsg);
+					musicPlayer.updateRecMsgDummy(recMsg);
 
 					if (cmd.startsWith(prefix + 'playall')) { // for playall command
 						let request = recMsg.content.split(' ').slice(1).join(' ');
-						musicPlayer.addQueue("add-all");
+						musicPlayer.addToQueue("add-all");
 						if (request == "s" || request == "shuffle") {
 							musicPlayer.shuffle();
 						}
 					}
 					else if (cmd.startsWith(prefix + 'playnow')) { // for play now command
-						musicPlayer.addQueue("add-force", request);
+						musicPlayer.addToQueue("add-force", request);
 					}
 					else { // for play command
-						musicPlayer.addQueue("add", request);
+						musicPlayer.addToQueue("add", request);
 					}
 
 					musicPlayer.loopWatchDog(); // begin queue
@@ -810,7 +803,7 @@ client.on('messageCreate', async recMsg => {
 
 				else if (cmd.startsWith(prefix + 'del')) {
 					let request = recMsg.content.split(' ').slice(1).join(' ');
-					musicPlayer.updateRecMsg(recMsg)
+					musicPlayer.updateRecMsgDummy(recMsg)
 					recMsg.channel.send({ embeds: [new EmbedParse(recMsg, "Deleting...", musicPlayer.delSong(request), 52224)] });
 				}
 
@@ -823,10 +816,7 @@ client.on('messageCreate', async recMsg => {
 					let request = recMsg.content.split(' ').slice(1).join(' ');
 					console.log("a" + request + "b")
 
-					musicPlayer.dlSong(recMsg, request)
-
-
-
+					musicPlayer.dlSong(recMsg, request);
 
 				}
 
@@ -843,22 +833,7 @@ client.on('messageCreate', async recMsg => {
 					let content = recMsg.content.split(' ').slice(2).join(' ')
 					let yes = new Pasteboard(recMsg, content)
 
-					// if (true) {
 					if (recMsg.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-						// console.log("hi")
-						// recMsg.channel.send({content: `Confirm delete paste "${alias}"? (Y/N)`})
-						// console.log("doing confirm")
-						// recMsg.channel.awaitMessages(m => m.author.id == recMsg.author.id, {max: 1, time: 30000}).then(collected => {
-						//   console.log("wait responsse")
-						//   if (collected.first().content.toLowerCase() == 'y') {
-						// console.log("doing opperation")
-						// let thing =  yes.evict();
-						// recMsg.channel.send({content: thing})
-
-
-
-
-
 						let pasteMsg;
 
 						if (cmd.startsWith(prefix + 'pb-delid')) { // delete by id
@@ -881,21 +856,6 @@ client.on('messageCreate', async recMsg => {
 								recMsg.channel.send(pasteMsg.substring(head, pasteMsg.length));
 							}
 						} while (tail <= pasteMsg.length);
-						// }
-
-						// else if (collected.first().content.toLowerCase() == 'n') {
-
-						//   recMsg.reply('Pasteboard addition canceled.');   
-						// }
-
-						// else {
-						//   recMsg.reply('Not a valid value.');   
-						// }   
-
-
-						//   }).catch(() => {
-						//     recMsg.reply('No answer after 30 seconds, operation canceled.');
-						//   });
 					}
 
 					else {
@@ -945,22 +905,6 @@ client.on('messageCreate', async recMsg => {
 					} while (tail <= pasteMsg.length);
 				}
 
-				// maybe sending the database is not the best idea...
-				// else if (cmd == prefix + 'pb-backup') {
-				//   if (recMsg.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-				//   recMsg.channel.send({content:"Here are the paste contents."}, {
-				//     files: [
-				//       "./pasteboardContent.json"]
-				//   });
-
-				// }
-
-				// else {
-				//   recMsg.channel.send({content:'You do not have authority to backup the pasteboard'})
-				// }
-
-
-				// }
 
 				else if (cmd.startsWith(prefix + 'pb')) { // main command, paste and copy
 

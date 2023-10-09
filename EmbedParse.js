@@ -2,27 +2,15 @@ const { EmbedBuilder } = require('discord.js');
 
 class EmbedParse {
 	/**
-	 * A poor, non dynamic method of parsing of a rich embed
-	 * 
-	 * @param {*} recMsgDummy Message object
-	 * @param {*} title message heading
-	 * @param {*} description message content
-	 * @param {*} colour colour of side bar
-	 * @param {*} field1Name field heading
-	 * @param {*} field1 field body
-	 * @param {*} field2Name 
-	 * @param {*} field2 
-	 * @param {*} field3Name 
-	 * @param {*} field3 
-	 * @param {*} field4Name 
-	 * @param {*} field4 
-	 * @param {*} field5Name 
-	 * @param {*} field5 
-	 * @param {*} field6Name 
-	 * @param {*} field6 
-	 * @returns a rich embed
+	 * Wrapper for embed builder
+	 * @param {*} recMsgDummy Message object link
+	 * @param {*} title 
+	 * @param {*} description 
+	 * @param {*} colour 
+	 * @param {*} fieldsToSlapOn array of filed objects [{name: "<name>", value: "<value>"}]
+	 * @param {*} useFooter 
+	 * @returns 
 	 */
-
 	constructor(recMsgDummy, title, description, colour, fieldsToSlapOn, useFooter) {
 		let parseEmbed = new EmbedBuilder()
 		parseEmbed.setTimestamp();

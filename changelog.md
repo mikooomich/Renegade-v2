@@ -1,19 +1,26 @@
 ## Changelog
 
-todo: 
-- implemnt previous messages, search function
-- add songs via upload
-	- give filename and auto parse
-- use resourse json for strins
-	- log images
-
-
 issues:
-- random unknown interaction
+- (?) random unknown interaction 
 	- DiscordAPIError[10062]: Unknown interaction
 
 
+## Modern js branch
+Music player
+- Make note of @discordjs/voice version
+- Fix empty queue causing crash
+- Fuzzy-ish song alias search (also for pasteboard)
+- Downloader is labeled as very experimental
+
+Boring techncial stuff
+- use filter insteaf of explicit linear search
+- use if else shorhand to make stuff more readable
+- Remove unessesary global bars in modules
+- Misc documentation and code optimizations
+
+
 ### 1.4-dev
+Changes up to and including [Republish](https://github.com/mikooomich/Renegade-v2/commit/a3c98c5f3feb7e6c56abab0c4c0d44091a3ad9b5)
 fix bot log formatting (i think)
 fix whatever discord.js appears to broke up to version up to ~~13.8.1~~ 14.3.0
 misc/spelling
@@ -23,7 +30,7 @@ pasteboard (back end ok, front end wip)
 	- lock per some server pasteboard to members with ban members permission
 Simple music player
 	- "GUI" player
-	- Add songs to library via file upload or ytdl
+	- Add songs to library via file upload or yt-dlf
 Console commands (exit)
 
 refractors

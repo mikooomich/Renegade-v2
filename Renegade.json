@@ -1,6 +1,6 @@
 {
 	"bot": {
-		"jsonVersion": "1.4-dev (1413)",
+		"jsonVersion": "0.0.1 (1)",
 		"configName": "Default Config",
 		"token": "ur token",
 		"owner": "ownerid",
@@ -19,11 +19,11 @@
 		],
 		"musicPrevScope": 8,
 		"musicNextScope": 16,
-		"boardPath": "./musicStronghold",
+		"musicLibraryPath": "./musicStronghold",
 		"MAX_DISP_CHARS": 50,
-		"dlBinary": "youtube-dl",
+		"dlBinary": "",
 		"dlPath": "./libs/",
-		"dlArgs": "--audio-quality 0 --extract-audio",
+		"dlArgs": "--audio-quality 0 -x",
 		"dlFormatting": "%(title)s.%(ext)s",
 		"displayUpdatetimeout": 4000
 	}
