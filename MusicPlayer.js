@@ -6,7 +6,7 @@ const version = '1013-music';
 const { exec } = require('child_process');
 let masterSongList = "default";
 const config = require('./Renegade-meepco.json');
-const boardPath = config.bot.boardPath;
+const musicLibraryPath = config.bot.musicLibraryPath;
 
 const dlBinary = config.bot.dlBinary;
 const dlPath = config.bot.dlPath;
@@ -182,7 +182,7 @@ async function dlWatchdog(where, timeoutOverride) {
 		let cd = false;
 
 		downloader.stdout.on('data', function (data) {
-			data.replace(`../${boardPath}/`, ""); // remove path from message
+			data.replace(`../${musicLibraryPath}/`, ""); // remove path from message
 
 			if (data.includes("[download] Destination:")) { // set title
 				title = data;
@@ -254,8 +254,8 @@ class MusicPlayer {
 
 
 		// create music folder
-		if (!fs.existsSync(`./musicStronghold`)) {
-			fs.mkdirSync(`./musicStronghold`);
+		if (!fs.existsSync(musicLibraryPath)) {
+			fs.mkdirSync(musicLibraryPath);
 		}
 		if (!fs.existsSync(dlPath)) {
 			fs.mkdirSync(dlPath);
@@ -280,7 +280,7 @@ class MusicPlayer {
 		};
 
 
-		let avalibleSongs = fs.readdirSync(boardPath);
+		let avalibleSongs = fs.readdirSync(musicLibraryPath);
 
 		for (const i in avalibleSongs) {
 			db.songboard.push({
@@ -444,7 +444,7 @@ class MusicPlayer {
 	 * Play the 0th song in the queue
 	 */
 	play() {
-		const resource = createAudioResource(`./musicStronghold/${this.songQueue.songboard[0].alias}`);
+		const resource = createAudioResource(`${musicLibraryPath}/${this.songQueue.songboard[0].alias}`);
 		this.player.play(resource);
 		this.connection.subscribe(this.player);
 		this.playing = true;
@@ -1026,7 +1026,7 @@ class MusicPlayer {
 			if (!downloaderBusy) {
 				downloaderBusy = true;
 
-				downloader = exec(`"${binary}" -o "../${boardPath}/${dlFormatting}" ${dlArgs} ${providedName.split(" ")[0]}`, { cwd: dlPath }, (err, stdout, stderr) => {
+				downloader = exec(`"${binary}" -o "../${musicLibraryPath}/${dlFormatting}" ${dlArgs} ${providedName.split(" ")[0]}`, { cwd: dlPath }, (err, stdout, stderr) => {
 					if (err) {
 						console.error(err);
 
@@ -1086,9 +1086,9 @@ class MusicPlayer {
 			}
 
 			if (where.attachments.first().contentType.startsWith("audio") || where.attachments.first().contentType.startsWith("video")) {
-				if (!fs.existsSync(`${boardPath}/${name}`)) {
+				if (!fs.existsSync(`${musicLibraryPath}/${name}`)) {
 					https.get(where.attachments.first().url, response => {
-						response.pipe(fs.createWriteStream(`./musicStronghold/${name}`));
+						response.pipe(fs.createWriteStream(`${musicLibraryPath}/${name}`));
 						this.scanner(); // rescan
 					})
 
