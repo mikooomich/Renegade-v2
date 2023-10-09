@@ -4,7 +4,7 @@ const https = require('https');
 const version = '1013-music';
 
 const { exec } = require('child_process');
-var masterSongList = "default";
+let masterSongList = "default";
 const config = require('./Renegade-meepco.json');
 const boardPath = config.bot.boardPath;
 
@@ -15,15 +15,12 @@ const dlFormatting = config.bot.dlFormatting;
 
 const MAX_DISP_CHARS = config.bot.MAX_DISP_CHARS;
 
-let alias; // name or id of song
-// let requestAuthor;
-let database = { // avalible songs on disk
+let availSongs = { // avalible songs on disk
 	boardName: masterSongList,
 	songboard: []
 };
 const { getVoiceConnection, VoiceConnectionStatus, AudioPlayerStatus, createAudioPlayer, NoSubscriberBehavior, joinVoiceChannel, createAudioResource } = require('@discordjs/voice');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { error } = require('console');
 
 let downloaderBusy = false;
 let downloader; // downloader ecec
@@ -105,24 +102,26 @@ const pausedButtons = new ActionRowBuilder().addComponents(
 
 
 /**
- * Searches for an element inside a given array with the extremely inefficient linear search method
+ * Searches for an element inside a given array
  * 
  * @param array Array to search
  * @param thingyToSearch The element to search for. A full alias
+ * @param useRoughSearch Use a case insensivive "contains" match search. Default is false
  * 
  * @return {int} The index of the item in the array, -1 if the item is not found
  */
-function aliasSearch(array, thingToSearch) {
-	for (const i in array) {
-		if (array[i].alias == thingToSearch) {
-			return parseInt(i);
-		}
+function aliasSearch(array, thingToSearch, useRoughSearch = false) {
+	if (useRoughSearch) {
+		let item = array.find((element) => { return element.alias.toLowerCase().includes(thingToSearch) });
+		return item ? item.id : -1;
 	}
-	return -1;
+
+	let item = array.find((element) => { return element.alias == thingToSearch });
+	return item ? item.id : -1;
 }
 
 /**
- * Searches for an element inside a given array with the extremely inefficient linear search method
+ * 
  * 
  * @param array Array to search
  * @param thingyToSearch The element to search for. An integer id
@@ -130,12 +129,8 @@ function aliasSearch(array, thingToSearch) {
  * @return {int} The index of the item in the array, -1 if the item is not found
  */
 function idSearch(array, thingToSearch) {
-	for (const i in array) {
-		if (array[i].id == thingToSearch) {
-			return parseInt(i);
-		}
-	}
-	return -1;
+	let item = array.find((element) => { return element.id == thingToSearch });
+	return item ? item.id : -1;
 }
 
 /**
@@ -248,7 +243,7 @@ class MusicPlayer {
 
 		// player GUI
 		this.bindGUI = undefined; // interaction.message object for updating GUI
-		this.activePlayer = undefined;
+		this.activeGUI = undefined;
 
 		// queue data structure
 		this.songQueue = {
@@ -276,7 +271,7 @@ class MusicPlayer {
 
 
 	/**
-	 * Scan song library folder
+	 * Scan song library folder and populate song database
 	 */
 	scanner() {
 		let db = {
@@ -295,29 +290,41 @@ class MusicPlayer {
 			})
 		}
 
-		database = db;
+		availSongs = db;
 	}
 
 	/**
-	 * Slaughter the voice connection. Closes player GUI if active, stop audio player, set playing/oneloop status to false, delete queues
+	 * Slaughter the voice connection. Closes player GUI if active, 
+	 * stop audio player, set playing/oneloop status to false, delete queues
 	 * @param {Boolean} firstRun set to true if this is run to ensure player is dead before starting a new player
 	 */
 	destroyPlayer(firstRun) {
-		// only destroy playerGUI if active. firstrun Prevents it from sending message when "ensure player destryed is firstrun status is true"
-		if (!this.activePlayer && firstRun != true) {
+		// only destroy playerGUI if active. firstrun Prevents it from sending
+		// messages when "ensure player destroyed is firstrun status is true"
+		if (!this.activeGUI && firstRun != true) {
 			if (this.isEmpty()) {
-				this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, ":exclamation:", "Queue is empty, playback Stopped", 52224)] });
+				this.recMsgDummy.channel.send({
+					embeds:
+						[
+							new EmbedParse(this.recMsgDummy, ":exclamation:", "Queue is empty, playback Stopped", 52224)
+						]
+				});
 				// return
 			}
 			else { // when stopping player before queue ends
-				this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, ":exclamation:", "Playback Stopped", 52224)] });
+				this.recMsgDummy.channel.send({
+					embeds:
+						[
+							new EmbedParse(this.recMsgDummy, ":exclamation:", "Playback Stopped", 52224)
+						]
+				});
 			}
 		}
 
 
-		else if (this.activePlayer) { // kill player GUI if active
+		else if (this.activeGUI) { // kill player GUI if active
 			this.updateScrn("stop");
-			this.activePlayer = false;
+			this.activeGUI = false;
 			this.bindGUI = undefined; // unbind
 		}
 
@@ -343,7 +350,12 @@ class MusicPlayer {
 				guildId: this.recMsgDummy.member.guild.id,
 				adapterCreator: this.recMsgDummy.guild.voiceAdapterCreator,
 			});
-			this.player = createAudioPlayer();
+			this.player = createAudioPlayer({
+				behaviors: {
+					noSubscriber: NoSubscriberBehavior.Pause,
+				},
+			}
+			);
 		}
 	}
 
@@ -362,21 +374,23 @@ class MusicPlayer {
 	 * @param {String} whatToDo "stop" signals that this is the final display update before the GUI closes. Anything else is handled as a regular display update
 	 */
 	updateScrn(whatToDo) {
-		if (this.activePlayer != true) {
+		if (this.activeGUI != true) {
 			return;
 		}
 
 
-		let wah = this.getData();
-		let prevDisp = wah[0];
-		let nextDisp = wah[1];
-		let playingDisp = wah[2];
+		let displayData = this.getDisplayData();
+		let prevDisp = displayData[0];
+		let nextDisp = displayData[1];
+		let playingDisp = displayData[2];
 
 
 		// update display
 		if (whatToDo != "stop") { // general case, just update screen with new info
 			// console.log("updating screen")
-			setTimeout(() => { // use delay to hopefully avoid the async programming demons causing display to display wrongly
+			setTimeout(() => {
+				// Use delay to hopefully avoid the async programming demons causing display to display wrongly
+				// I blame Discord.js/Discord
 				this.bindGUI.edit({
 					embeds: [
 						new EmbedParse(this.recMsgDummy, "Player(auto)", "Use the buttons to navagate" + `\nOneLoop = ${this.loopOne}`, 52224,
@@ -387,8 +401,8 @@ class MusicPlayer {
 			return;
 		}
 
-
-		if (this.isEmpty()) { // display stop, empty
+		// stop case, empty queue
+		if (this.isEmpty()) {
 			this.bindGUI.edit({
 				embeds: [
 					new EmbedParse(this.recMsgDummy, "Player(auto)", "Player stopped, empty queue", 52224,
@@ -413,11 +427,11 @@ class MusicPlayer {
 	 * Closes the GUI and unbinds the interaction message
 	 */
 	destroyOldGUI() {
-		if (this.activePlayer) {
+		if (this.activeGUI) {
 			// console.log("hai, killing")
 			this.updateScrn("stop");
 			this.bindGUI = undefined;
-			this.activePlayer = false;
+			this.activeGUI = false;
 		}
 	}
 
@@ -459,18 +473,14 @@ class MusicPlayer {
 	 * Toggles loop one song
 	 */
 	setOneLoop() {
-		if (this.loopOne) { this.loopOne = false; }
-		else { this.loopOne = true; }
+		this.loopOne = !this.loopOne;
 
-		if (!this.activePlayer) { // dont send to channel when player is active
-			if (!this.loopOne) { // one loop is off
-				this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, "Single song loop OFF", ":x: :repeat_one:", 52224)] });
-			}
-			else {
+		if (!this.activeGUI) { // dont send to channel when player is active
+			!this.loopOne ?
+				this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, "Single song loop OFF", ":x: :repeat_one:", 52224)] }) :
 				this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, "Single song loop ON", ":repeat_one:", 52224)] });
-			}
 		}
-		else if (this.activePlayer) {
+		else if (this.activeGUI) {
 			this.updateScrn();
 		}
 	}
@@ -481,7 +491,7 @@ class MusicPlayer {
 	shuffle() {
 		shuffle(this.songQueue.songboard);
 
-		if (this.activePlayer) { // update gui after shuffling
+		if (this.activeGUI) { // update gui after shuffling
 			this.updateScrn();
 		}
 	}
@@ -493,20 +503,18 @@ class MusicPlayer {
 	 * @param {String} whatToDo "add" adds a song to back of queue. "add-force" will play this song now
 	 * @param {String, Int} thing an alias (String), or an id (Int) of the song to add
 	 */
-	addQueue(whatToDo, thing) {
+	addToQueue(whatToDo, songAlias) {
 		// check if member is in a channel
 		try {
-			var yes = this.recMsgDummy.member.voice.channel.id;
+			let yes = this.recMsgDummy.member.voice.channel.id;
 		}
 		catch {
 			this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, "Error", "Command failure. Are you in a voice channel?", 52224)] });
 			return;
 		}
 
-		alias = thing;
-
-		if (alias === "") { // filter out blank entries
-			alias = -1;
+		if (songAlias === "") { // filter out blank entries
+			songAlias = -1;
 		}
 
 		if (this.songQueue.songboard.length <= 0) { // ensure player is dead if queue empty
@@ -518,7 +526,7 @@ class MusicPlayer {
 
 		// start player, search for song
 		this.startPlayer();
-		let songToPlay = this.getSong();
+		let songToPlay = this.getSong(songAlias);
 
 		if (whatToDo == "add") {
 			if (typeof songToPlay == "object") { // assume we have a valid song, else undefined object
@@ -609,7 +617,7 @@ class MusicPlayer {
 		else { // play next
 			// console.log("playing next")
 			this.play();
-			if (!this.activePlayer) {
+			if (!this.activeGUI) {
 				this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, "Now playing", this.songQueue.songboard[0].alias, 52224)] })
 			}
 		}
@@ -626,7 +634,7 @@ class MusicPlayer {
 		this.songQueue.songboard.splice(0, 0, this.songQueue.prev.pop()) // move from previous to playing queue
 
 		this.play();
-		if (!this.activePlayer) {
+		if (!this.activeGUI) {
 			this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, "Now playing", this.songQueue.songboard[0].alias, 52224)] });
 		}
 	}
@@ -635,15 +643,20 @@ class MusicPlayer {
 	 * Take action when the current song has ended (play the next song)
 	 */
 	loopWatchDog() {
-		if (this.playing == true) {
+		if (this.playing) {
 			return;
 		}
 		try {
 			if (this.songQueue.songboard.length > 0) {
 				this.playing = true;
 				this.play();
-				if (!this.activePlayer) {
-					this.recMsgDummy.channel.send({ embeds: [new EmbedParse(this.recMsgDummy, "Now playing", this.songQueue.songboard[0].alias, 52224)] });
+				if (!this.activeGUI) {
+					this.recMsgDummy.channel.send({
+						embeds:
+							[
+								new EmbedParse(this.recMsgDummy, "Now playing", this.songQueue.songboard[0].alias, 52224)
+							]
+					});
 				}
 
 				// take action when current song stops playing
@@ -655,9 +668,15 @@ class MusicPlayer {
 				this.playing = false;
 			}
 		}
-		catch (Error) {
-			console.log("LOOP FAILURE")
-			console.log(Error)
+		catch (e) {
+			console.log("Player Watchdog Error!")
+			console.log(e)
+			this.recMsgDummy.channel.send({
+				embeds:
+					[
+						new EmbedParse(this.recMsgDummy, "Player Watchdog Error!", e.subString(0, 2000), 52224)
+					]
+			});
 		}
 	}
 
@@ -675,14 +694,14 @@ class MusicPlayer {
 	 * @returns status message
 	 */
 	delSong(songAlias) {
-		if (this.isEmpty()) { return "incorrect command usage (queue is empty)" }
+		if (this.isEmpty()) { return "Incorrect command usage: queue is empty)" }
 
 		let head = parseInt(songAlias.split("-")[0]);
 		let tail = parseInt(songAlias.split("-")[1]);
 
 		if (Number.isInteger(head) && Number.isInteger(tail)) {
 			if (head > tail) {
-				return "Incorrect command usage\n (head index is > tail index, both inegers)";
+				return "Incorrect command usage: head index is > tail index";
 			}
 
 			// conform head/tail to bounds of list
@@ -692,26 +711,25 @@ class MusicPlayer {
 			if (head <= 0) { // do not touch the now playing song
 				head = 1;
 				if (head > tail) {
-					return "Range delete cannot delete 0th (or lower) head index. Thus head has been set to 1 (min value). Now head > tail, which is invalid.";
+					return `Range delete cannot delete <= 0 head index. Thus head has been set to 1 (min value). Now head (${head}) cannot be greater than tail (${tail}).`;
 				}
 			}
 
 			// delete and display it 
-			this.peek(head, tail).forEach(yes => dispStr += yes.alias + "\n");
+			this.peekQueue(head, tail).forEach((element) => dispStr += element.alias + "\n");
 			this.songQueue.songboard.splice(head, tail - head + 1);
 			let dispStr = "";
 			this.recMsgDummy.channel.send(dispStr);
 
-			if (this.activePlayer) { this.updateScrn() }
+			if (this.activeGUI) { this.updateScrn() }
 			return "Range delete sucess";
 		}
 
 
-		alias = songAlias; // idk why I'm still using a class var
-		if (alias === "") { // filter out blank entries
-			alias = -1;
+		if (songAlias === "") { // filter out blank entries
+			songAlias = -1;
 		}
-		let songToPlay = this.getSong();
+		let songToPlay = this.getSong(songAlias);
 
 		// if is first index, treat it as a next song command
 		if (songToPlay == this.songQueue.songboard[0].alias) {
@@ -733,7 +751,7 @@ class MusicPlayer {
 		if (index >= 0) {
 			// delete song from thing
 			this.songQueue.songboard.splice(index, 1);
-			if (this.activePlayer) { this.updateScrn() }
+			if (this.activeGUI) { this.updateScrn() }
 			return "Deleted sucessfullyyyyyy";
 		}
 		else {
@@ -755,12 +773,18 @@ class MusicPlayer {
 	 */
 	getPlayingQueue() {
 		// exclude including the playing song (0th index).  1 and onwards is the next songs
-		return this.peek(1, this.songQueue.songboard.length, this.songQueue.songboard);
+		try {
+			return this.peekQueue(1, this.songQueue.songboard.length, this.songQueue.songboard);
+		}
+		catch (error) {
+			console.log("getPlayingQueue() error")
+			return [];
+		}
 	}
 
 	/**
-	 * Peek at a slice a range in the song queue.
-	 * This is essentially the splice() array metod with a few extra things
+	 * Peek at (slice) a range in the song queue.
+	 * This is essentially the slice() method with a few extra things
 	 * to add formatting for shortning queues.
 	 * Indexes are inclusive.
 	 * Scope (elements that follow head index is set in config)
@@ -770,16 +794,17 @@ class MusicPlayer {
 	 * @param {Array} array a queue
 	 * @returns array of songs {song{id, alias}, etc {}}
 	 */
-	peek(head, tail, array) {
+	peekQueue(head, tail, array) {
 		// sanitize input
 		if (!Number.isInteger(head) || !Number.isInteger(tail) || head > tail) {
-			throw new error("Invalid Input, head cannot be greater than tail, must be integers");
+			throw new Error("Invalid Input, head cannot be greater than tail, must be integers");
 		}
 
+		// conform head/tail to bounds of list
 		if (head < 0) {
 			head = 0;
 		}
-		if (tail > head + config.bot.musicNextScope - 1) { // -1 because 0 indexing
+		if (tail > head + config.bot.musicNextScope - 1) {
 			tail = head + config.bot.musicNextScope - 1;
 		}
 
@@ -828,7 +853,7 @@ class MusicPlayer {
 	getPrev() {
 		// it is assumed we only keep a finite amount of previous songs... for now
 		// let list = this.songQueue.prev.slice(0, config.bot.musicPrevScope +1);
-		return this.peek(0, config.bot.musicPrevScope, this.songQueue.prev);
+		return this.peekQueue(0, config.bot.musicPrevScope, this.songQueue.prev);
 	}
 
 	/**
@@ -836,7 +861,7 @@ class MusicPlayer {
 	 * 
 	 * @returns array, [previous songs, next songs, current song]
 	 */
-	getData() {
+	getDisplayData() {
 		let prevq = "";
 		let nextq = "";
 		let cur = "";
@@ -873,7 +898,7 @@ class MusicPlayer {
 	 * 
 	 * @returns 
 	 */
-	getAll() { return database.songboard }
+	getAll() { return availSongs.songboard }
 
 	/**
 	 * Find song in the song library.
@@ -881,19 +906,13 @@ class MusicPlayer {
 	 * 
 	 * @returns int, the index in library of the song
 	 */
-	getSong() {
-		let indexOfPaste = idSearch(database.songboard, alias);
-		let indexOfPaste2 = aliasSearch(database.songboard, alias);
+	getSong(songAlias) {
+		let indexOfPaste = idSearch(availSongs.songboard, songAlias);
+		let indexOfPaste2 = aliasSearch(availSongs.songboard, songAlias, true);
 
-		if (indexOfPaste == -1 && indexOfPaste2 == -1) {
-			return "Song does not exist";
-		}
-		else if (indexOfPaste == -1) {
-			return database.songboard[indexOfPaste2];
-		}
-		else {
-			return database.songboard[indexOfPaste];
-		}
+		return (indexOfPaste == -1 && indexOfPaste2 == -1) ? "Song does not exist"
+			: indexOfPaste == -1 ? availSongs.songboard[indexOfPaste2]
+				: availSongs.songboard[indexOfPaste];
 	}
 
 	/**
@@ -909,8 +928,7 @@ class MusicPlayer {
 	 * @returns true if queue is empty
 	 */
 	isEmpty() {
-		if (this.songQueue.songboard.length <= 0) { return true }
-		else { return false }
+		return this.songQueue.songboard.length <= 0;
 	}
 
 	/**
@@ -923,8 +941,8 @@ class MusicPlayer {
 		// availableSongs.push("Avalible Song")
 		try {
 
-			for (const i in database.songboard) { // list all the aliases
-				availableSongs.push((`(${database.songboard[i].id}) ` + database.songboard[i].alias));
+			for (const i in availSongs.songboard) { // list all the aliases
+				availableSongs.push((`(${availSongs.songboard[i].id}) ` + availSongs.songboard[i].alias));
 			}
 			return availableSongs;
 		}
@@ -950,15 +968,15 @@ class MusicPlayer {
 	 * Set flag for Player GUI is active
 	 */
 	usePlayer() {
-		this.activePlayer = true;
+		this.activeGUI = true;
 	}
 
 	/**
-	 * Update the resMsg
+	 * Update the resMsgDummy
 	 * 
 	 * @param {Object} newOne
 	 */
-	updateRecMsg(newOne) {
+	updateRecMsgDummy(newOne) {
 		this.recMsgDummy = newOne;
 	}
 
@@ -994,7 +1012,11 @@ class MusicPlayer {
 				return;
 			}
 
-			else if (!providedName.startsWith("https://www.youtube.com") && !providedName.startsWith("https://youtu.be") && !providedName.startsWith("https://music.youtube.com") && !providedName.startsWith(" https://m.youtube.com") && !providedName.startsWith("https://soundcloud.com")) {
+			else if (
+				!providedName.startsWith("https://www.youtube.com") && !providedName.startsWith("https://youtu.be")
+				&& !providedName.startsWith("https://music.youtube.com") && !providedName.startsWith(" https://m.youtube.com")
+				&& !providedName.startsWith("https://soundcloud.com")) {
+
 				where.channel.send("For security reasons, non-YouTube/Soundcloud URLs are unsupported");
 				return;
 			}
@@ -1014,7 +1036,12 @@ class MusicPlayer {
 						if (sanitizedError == undefined) {
 							sanitizedError = "";
 						}
-						where.channel.send("Download failure\n`" + sanitizedError + "`");
+
+						// hax: ruthlessly supress this error because i have  no clue why it tries to run pp
+						if (!sanitizedError == ("'pp' is not recognized as an internal or external command,\noperable program or batch file.")) {
+							where.channel.send("Download failure\n`" + sanitizedError + "`");
+							return;
+						}
 
 						downloaderBusy = false;
 						downloader = undefined;

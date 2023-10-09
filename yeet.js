@@ -310,7 +310,7 @@ client.on(Events.InteractionCreate, interaction => {
 
 
 	setTimeout(() => { // add artifical time to ratelimit buttons
-		let wah = musicPlayer.getData()
+		let wah = musicPlayer.getDisplayData()
 		let prevDisp = wah[0];
 		let nextDisp = wah[1];
 		let playingDisp = wah[2];
@@ -696,14 +696,7 @@ client.on('messageCreate', async recMsg => {
 							playSong += `**${parseInt(i) + 1}.** ${playingQueue[i].alias}    (id=${playingQueue[i].id})\n`;
 						}
 
-						// do {
 						recMsg.channel.send({ embeds: [new EmbedParse(recMsg, "Current Queue", playSong.substring(head, tail), 52224)] });
-						//   head = tail + 1;
-						//   tail += 1950;
-						//   if (tail > playSong.length && playSong.substring(head, playSong.length).length > 0) {
-						//     recMsg.channel.send({embeds: [new EmbedParse(recMsg, "Current Queue", playSong.substring(head, playSong.length), 52224)]});
-						//   }
-						// } while (tail <= playSong.length);
 					}
 					else {
 						recMsg.channel.send({ embeds: [new EmbedParse(recMsg, ":exclamation::exclamation::exclamation:", "QUEUE IS EMPTY", 52224)] });
@@ -766,7 +759,7 @@ client.on('messageCreate', async recMsg => {
 					// spawn player prompt
 					recMsg.channel.send({
 						embeds: [
-							new EmbedParse(recMsg, "Player", "Hello.", 52224)
+							new EmbedParse(recMsg, "Player GUI", "Hello.", 52224)
 						], components: [spawn]
 					});
 
@@ -789,20 +782,20 @@ client.on('messageCreate', async recMsg => {
 
 				else if (cmd.startsWith(prefix + 'play')) {
 					let request = recMsg.content.split(' ').slice(1).join(' ');
-					musicPlayer.updateRecMsg(recMsg);
+					musicPlayer.updateRecMsgDummy(recMsg);
 
 					if (cmd.startsWith(prefix + 'playall')) { // for playall command
 						let request = recMsg.content.split(' ').slice(1).join(' ');
-						musicPlayer.addQueue("add-all");
+						musicPlayer.addToQueue("add-all");
 						if (request == "s" || request == "shuffle") {
 							musicPlayer.shuffle();
 						}
 					}
 					else if (cmd.startsWith(prefix + 'playnow')) { // for play now command
-						musicPlayer.addQueue("add-force", request);
+						musicPlayer.addToQueue("add-force", request);
 					}
 					else { // for play command
-						musicPlayer.addQueue("add", request);
+						musicPlayer.addToQueue("add", request);
 					}
 
 					musicPlayer.loopWatchDog(); // begin queue
@@ -810,7 +803,7 @@ client.on('messageCreate', async recMsg => {
 
 				else if (cmd.startsWith(prefix + 'del')) {
 					let request = recMsg.content.split(' ').slice(1).join(' ');
-					musicPlayer.updateRecMsg(recMsg)
+					musicPlayer.updateRecMsgDummy(recMsg)
 					recMsg.channel.send({ embeds: [new EmbedParse(recMsg, "Deleting...", musicPlayer.delSong(request), 52224)] });
 				}
 
@@ -823,10 +816,7 @@ client.on('messageCreate', async recMsg => {
 					let request = recMsg.content.split(' ').slice(1).join(' ');
 					console.log("a" + request + "b")
 
-					musicPlayer.dlSong(recMsg, request)
-
-
-
+					musicPlayer.dlSong(recMsg, request);
 
 				}
 
