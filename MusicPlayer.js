@@ -332,9 +332,9 @@ class MusicPlayer {
 		// kill audioplayer, queues
 		this.playing = false;
 		this.loopOne = false;
-		this.player.stop();
+		this.player != undefined? this.player.stop() : undefined;
 		this.player = undefined;
-		this.connection.destroy();
+		this.connection != undefined? this.connection.destroy() : undefined;
 		this.songQueue.songboard = [];
 		this.songQueue.prev = [];
 	}
